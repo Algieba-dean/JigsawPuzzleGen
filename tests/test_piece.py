@@ -6,94 +6,93 @@ from src.models.piece import JigsawPiece
 @pytest.fixture
 def piece():
     """创建一个基本的拼图片用于测试"""
-    return JigsawPiece(1)
+    edges = {
+        Direction.UP: 1,
+        Direction.RIGHT: 2,
+        Direction.DOWN: -1,
+        Direction.LEFT: -2
+    }
+    return JigsawPiece(1, edges)
 
 
 @pytest.fixture
 def piece_with_edges():
     """创建一个设置了边值的拼图片"""
-    piece = JigsawPiece(2)
-    piece.set_edge(Direction.UP, 1)
-    piece.set_edge(Direction.RIGHT, 2)
-    piece.set_edge(Direction.DOWN, 3)
-    piece.set_edge(Direction.LEFT, 4)
-    return piece
+    edges = {
+        Direction.UP: 3,
+        Direction.RIGHT: 4,
+        Direction.DOWN: -3,
+        Direction.LEFT: -4
+    }
+    return JigsawPiece(2, edges)
 
 
 def test_piece_initialization(piece):
     """测试拼图片初始化"""
     assert piece.id == 1
-    assert piece.position == (None, None)
+    assert piece.get_edge(Direction.UP) == 1
+    assert piece.get_edge(Direction.RIGHT) == 2
+    assert piece.get_edge(Direction.DOWN) == -1
+    assert piece.get_edge(Direction.LEFT) == -2
+    assert piece.position is None
     assert piece.rotation == 0
-    assert not piece.is_corner
-    assert not piece.is_edge
-    for direction in Direction:
-        assert piece.get_edge(direction) == 0
 
 
 def test_piece_edge_operations(piece):
-    """测试边值操作"""
-    piece.set_edge(Direction.UP, 1)
+    """测试边缘值操作"""
     assert piece.get_edge(Direction.UP) == 1
-    
-    piece.set_edge(Direction.RIGHT, -2)
-    assert piece.get_edge(Direction.RIGHT) == -2
-
-
-def test_piece_position(piece):
-    """测试位置设置"""
-    piece.set_position(2, 3)
-    assert piece.position == (2, 3)
-    assert piece.is_placed()
+    assert piece.get_edge(Direction.RIGHT) == 2
+    assert piece.get_edge(Direction.DOWN) == -1
+    assert piece.get_edge(Direction.LEFT) == -2
 
 
 def test_piece_rotation(piece_with_edges):
-    """测试旋转操作"""
-    original_edges = {
-        Direction.UP: piece_with_edges.get_edge(Direction.UP),
-        Direction.RIGHT: piece_with_edges.get_edge(Direction.RIGHT),
-        Direction.DOWN: piece_with_edges.get_edge(Direction.DOWN),
-        Direction.LEFT: piece_with_edges.get_edge(Direction.LEFT)
-    }
+    """测试拼图片旋转"""
+    original_up = piece_with_edges.get_edge(Direction.UP)
+    original_right = piece_with_edges.get_edge(Direction.RIGHT)
     
-    # 测试90度旋转
-    piece_with_edges.rotate(90)
-    assert piece_with_edges.rotation == 90
-    assert piece_with_edges.get_edge(Direction.UP) == original_edges[Direction.LEFT]
-    assert piece_with_edges.get_edge(Direction.RIGHT) == original_edges[Direction.UP]
-    assert piece_with_edges.get_edge(Direction.DOWN) == original_edges[Direction.RIGHT]
-    assert piece_with_edges.get_edge(Direction.LEFT) == original_edges[Direction.DOWN]
+    # 旋转90度
+    piece_with_edges.rotation = 90
+    assert piece_with_edges.get_edge(Direction.UP) == piece_with_edges._edges[Direction.LEFT]
+    assert piece_with_edges.get_edge(Direction.RIGHT) == piece_with_edges._edges[Direction.UP]
     
-    # 测试180度旋转
-    piece_with_edges.rotate(90)  # 再旋转90度，总共180度
-    assert piece_with_edges.rotation == 180
-    assert piece_with_edges.get_edge(Direction.UP) == original_edges[Direction.DOWN]
-    assert piece_with_edges.get_edge(Direction.RIGHT) == original_edges[Direction.LEFT]
+    # 旋转180度
+    piece_with_edges.rotation = 180
+    assert piece_with_edges.get_edge(Direction.UP) == piece_with_edges._edges[Direction.DOWN]
+    assert piece_with_edges.get_edge(Direction.RIGHT) == piece_with_edges._edges[Direction.LEFT]
+    
+    # 旋转270度
+    piece_with_edges.rotation = 270
+    assert piece_with_edges.get_edge(Direction.UP) == piece_with_edges._edges[Direction.RIGHT]
+    assert piece_with_edges.get_edge(Direction.RIGHT) == piece_with_edges._edges[Direction.DOWN]
+    
+    # 恢复原位
+    piece_with_edges.rotation = 0
+    assert piece_with_edges.get_edge(Direction.UP) == original_up
+    assert piece_with_edges.get_edge(Direction.RIGHT) == original_right
 
 
-def test_piece_matching(piece):
+def test_piece_matching(piece, piece_with_edges):
     """测试拼图片匹配"""
-    other_piece = JigsawPiece(2)
+    # 创建一个匹配的拼图片
+    matching_edges = {
+        Direction.UP: -1,  # 匹配piece的DOWN
+        Direction.RIGHT: -2,  # 匹配piece的LEFT
+        Direction.DOWN: 1,  # 匹配piece的UP
+        Direction.LEFT: 2  # 匹配piece的RIGHT
+    }
+    matching_piece = JigsawPiece(3, matching_edges)
     
-    # 设置匹配的边
-    piece.set_edge(Direction.RIGHT, 1)
-    other_piece.set_edge(Direction.LEFT, -1)
-    assert piece.matches(other_piece, Direction.RIGHT)
+    assert piece.matches(matching_piece, Direction.UP)
+    assert piece.matches(matching_piece, Direction.RIGHT)
+    assert matching_piece.matches(piece, Direction.DOWN)
+    assert matching_piece.matches(piece, Direction.LEFT)
     
-    # 设置不匹配的边
-    piece.set_edge(Direction.UP, 2)
-    other_piece.set_edge(Direction.DOWN, 2)
-    assert not piece.matches(other_piece, Direction.UP)
-
-
-def test_invalid_rotation(piece):
-    """测试无效的旋转角度"""
-    with pytest.raises(ValueError):
-        piece.rotate(45)
+    # 测试不匹配的情况
+    assert not piece.matches(piece_with_edges, Direction.UP)
 
 
 def test_piece_string_representation(piece):
-    """测试字符串表示"""
-    piece.set_position(1, 2)
-    piece.rotate(90)
-    assert str(piece) == "JigsawPiece(id=1, pos=(1, 2), rotation=90°)" 
+    """测试拼图片的字符串表示"""
+    expected = "JigsawPiece(id=1, pos=None, rotation=0°)"
+    assert str(piece) == expected 

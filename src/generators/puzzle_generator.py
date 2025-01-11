@@ -1,117 +1,58 @@
-from typing import List, Tuple, Iterator, Optional
+from typing import List, Dict, Set, Optional, Iterator
+from itertools import product
 import random
-from multiprocessing import Pool, cpu_count
-from itertools import product, islice
-from ..models.direction import Direction
-from ..models.piece import JigsawPiece
-from ..models.puzzle import JigsawPuzzle
-
+from src.models.direction import Direction
+from src.models.piece import JigsawPiece
 
 class PuzzleGenerator:
-    """拼图生成器类"""
+    @staticmethod
+    def generate_edge_values(edge_types: int = 3) -> List[int]:
+        """生成有效的边缘值列表"""
+        values = []
+        for i in range(1, edge_types + 1):
+            values.extend([i, -i])  # 添加正负值对
+        return values
     
     @staticmethod
-    def _generate_edge_values(edge_types: int, count: int) -> Iterator[List[int]]:
-        """使用生成器生成边值组合"""
-        for values in product(range(1, edge_types + 1), repeat=count):
-            yield list(values)
+    def _create_puzzle_piece(piece_id: int, edges: Dict[Direction, int],
+                           is_corner: bool = False, is_edge: bool = False) -> JigsawPiece:
+        """创建一个新的拼图片"""
+        return JigsawPiece(piece_id, edges, is_corner, is_edge)
     
-    @staticmethod
-    def _create_puzzle_from_edges(rows: int, cols: int, h_edges: List[int],
-                                v_edges: List[int]) -> Optional[JigsawPuzzle]:
-        """从给定的边值创建拼图，如果无效则返回 None"""
-        puzzle = JigsawPuzzle(rows, cols)
-        h_idx = v_idx = 0
-        piece_id = 1
-        
-        # 预先检查边值的有效性
-        if not all(-edge_types <= x <= edge_types for x in h_edges + v_edges):
-            return None
+    def generate_solvable_puzzle(self, rows: int, cols: int, edge_types: int = 3) -> List[JigsawPiece]:
+        """生成一个可解的拼图"""
+        if rows < 2 or cols < 2:
+            raise ValueError("拼图必须至少是2x2的大小")
             
-        try:
-            for row in range(rows):
-                for col in range(cols):
-                    piece = JigsawPiece(piece_id)
-                    piece_id += 1
-                    
-                    # 设置边的值
-                    if row > 0:
-                        piece.set_edge(Direction.UP, -v_edges[v_idx - cols])
-                    if row < rows - 1:
-                        piece.set_edge(Direction.DOWN, v_edges[v_idx])
-                        v_idx += 1
-                    if col > 0:
-                        piece.set_edge(Direction.LEFT, -h_edges[h_idx - 1])
-                    if col < cols - 1:
-                        piece.set_edge(Direction.RIGHT, h_edges[h_idx])
-                        h_idx += 1
-                    
-                    piece.is_edge = (row == 0 or row == rows-1 or col == 0 or col == cols-1)
-                    piece.is_corner = ((row == 0 or row == rows-1) and (col == 0 or col == cols-1))
-                    
-                    puzzle.add_piece(piece)
-                    puzzle.board[row][col] = piece
-                    piece.set_position(row, col)
-            
-            return puzzle
-        except Exception:
-            return None
-    
-    @staticmethod
-    def _process_edge_combination(args: Tuple[int, int, List[int], List[int]]) -> Optional[JigsawPuzzle]:
-        """处理单个边值组合"""
-        rows, cols, h_edges, v_edges = args
-        return PuzzleGenerator._create_puzzle_from_edges(rows, cols, h_edges, v_edges)
-    
-    @staticmethod
-    def generate_all_possible_puzzles(rows: int, cols: int, edge_types: int,
-                                    max_combinations: int = 1000,
-                                    use_parallel: bool = True) -> Iterator[JigsawPuzzle]:
-        """生成所有可能的有效拼图配置
+        pieces: List[JigsawPiece] = []
+        piece_id = 0
+        edge_values = self.generate_edge_values(edge_types)
         
-        Args:
-            rows: 拼图的行数
-            cols: 拼图的列数
-            edge_types: 边的类型数量
-            max_combinations: 最大生成数量
-            use_parallel: 是否使用并行处理
-            
-        Returns:
-            Iterator[JigsawPuzzle]: 拼图生成器
-        """
-        horizontal_edges_count = (cols - 1) * rows
-        vertical_edges_count = cols * (rows - 1)
-        
-        # 生成边值组合
-        h_combinations = PuzzleGenerator._generate_edge_values(edge_types, horizontal_edges_count)
-        v_combinations = list(PuzzleGenerator._generate_edge_values(edge_types, vertical_edges_count))
-        
-        if use_parallel and max_combinations > 100:
-            # 并行处理
-            with Pool(cpu_count()) as pool:
-                args = ((rows, cols, list(h), list(v))
-                       for h, v in product(h_combinations, v_combinations))
+        # 为每个位置创建拼图片
+        for row in range(rows):
+            for col in range(cols):
+                edges = {}
+                is_corner = (row in (0, rows-1) and col in (0, cols-1))
+                is_edge = (row in (0, rows-1) or col in (0, cols-1)) and not is_corner
                 
-                for puzzle in pool.imap_unordered(
-                    PuzzleGenerator._process_edge_combination,
-                    islice(args, max_combinations)
-                ):
-                    if puzzle is not None:
-                        yield puzzle
-        else:
-            # 串行处理
-            count = 0
-            for h_edges in h_combinations:
-                if count >= max_combinations:
-                    break
+                # 上边
+                if row == 0:
+                    edges[Direction.UP] = 0  # 外边缘为平的
+                else:
+                    edges[Direction.UP] = -pieces[(row-1)*cols + col].get_edge(Direction.DOWN)
                     
-                for v_edges in v_combinations:
-                    if count >= max_combinations:
-                        break
-                        
-                    puzzle = PuzzleGenerator._create_puzzle_from_edges(
-                        rows, cols, h_edges, v_edges
-                    )
-                    if puzzle is not None:
-                        yield puzzle
-                        count += 1 
+                # 左边
+                if col == 0:
+                    edges[Direction.LEFT] = 0  # 外边缘为平的
+                else:
+                    edges[Direction.LEFT] = -pieces[row*cols + col-1].get_edge(Direction.RIGHT)
+                    
+                # 下边和右边可以随机生成
+                edges[Direction.DOWN] = random.choice(edge_values) if row < rows-1 else 0
+                edges[Direction.RIGHT] = random.choice(edge_values) if col < cols-1 else 0
+                
+                piece = self._create_puzzle_piece(piece_id, edges, is_corner, is_edge)
+                pieces.append(piece)
+                piece_id += 1
+                
+        return pieces 

@@ -4,10 +4,10 @@ from src.models.direction import Direction
 
 def test_direction_values():
     """测试方向枚举值"""
-    assert Direction.UP.value == "up"
-    assert Direction.DOWN.value == "down"
-    assert Direction.LEFT.value == "left"
-    assert Direction.RIGHT.value == "right"
+    assert Direction.UP.value == 0
+    assert Direction.RIGHT.value == 1
+    assert Direction.DOWN.value == 2
+    assert Direction.LEFT.value == 3
 
 
 def test_direction_opposite():
@@ -20,6 +20,6 @@ def test_direction_opposite():
 
 def test_direction_comparison():
     """测试方向比较"""
-    assert Direction.UP == Direction.UP
     assert Direction.UP != Direction.DOWN
-    assert Direction.LEFT != Direction.RIGHT 
+    assert Direction.LEFT != Direction.RIGHT
+    assert Direction.UP == Direction.UP 

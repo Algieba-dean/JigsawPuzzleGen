@@ -14,58 +14,79 @@ class JigsawPiece:
         is_edge: 是否是边缘拼图片
     """
     
-    def __init__(self, piece_id: int):
-        self.id = piece_id
-        self.edges: Dict[Direction, int] = {
-            Direction.UP: 0,
-            Direction.RIGHT: 0,
-            Direction.DOWN: 0,
-            Direction.LEFT: 0
-        }
-        self.position: Tuple[Optional[int], Optional[int]] = (None, None)
-        self.rotation: int = 0  # 0, 90, 180, 270
-        self.is_corner: bool = False
-        self.is_edge: bool = False
+    def __init__(self, id: int, edges: Dict[Direction, int], is_corner: bool = False, is_edge: bool = False):
+        self.id = id
+        self._edges = edges.copy()  # 创建edges的副本
+        self.position: Optional[Tuple[int, int]] = None  # (row, col)
+        self._rotation = 0  # 0, 90, 180, 270
+        self.is_corner = is_corner
+        self.is_edge = is_edge or is_corner  # 角落片也是边缘片
+        
+        # 验证边缘值的有效性
+        if not all(isinstance(v, int) for v in edges.values()):
+            raise ValueError("所有边缘值必须是整数")
+            
+        # 验证方向的完整性
+        if set(edges.keys()) != set(Direction):
+            raise ValueError("必须为所有方向指定边缘值")
     
-    def set_edge(self, direction: Direction, value: int) -> None:
-        """设置指定方向边的形状值"""
-        self.edges[direction] = value
+    @property
+    def rotation(self) -> int:
+        """获取当前旋转角度"""
+        return self._rotation
     
-    def get_edge(self, direction: Direction) -> int:
-        """获取指定方向边的形状值"""
-        return self.edges[direction]
+    @rotation.setter
+    def rotation(self, degrees: int):
+        """设置旋转角度"""
+        if degrees % 90 != 0:
+            raise ValueError("旋转角度必须是90的倍数")
+        self._rotation = degrees % 360
     
-    def set_position(self, x: int, y: int) -> None:
-        """设置拼图片在拼图中的位置"""
-        self.position = (x, y)
-    
-    def rotate(self, degrees: int) -> None:
+    def rotate(self, degrees: int):
         """旋转拼图片
         
         Args:
-            degrees: 旋转的角度 (90的倍数)
+            degrees: 旋转的角度 (可以是任意整数，会自动转换为[0, 360)范围内)
         """
         if degrees % 90 != 0:
             raise ValueError("旋转角度必须是90的倍数")
-            
-        times = (degrees // 90) % 4
-        for _ in range(times):
-            # 顺时针旋转90度
-            temp = self.edges[Direction.UP]
-            self.edges[Direction.UP] = self.edges[Direction.LEFT]
-            self.edges[Direction.LEFT] = self.edges[Direction.DOWN]
-            self.edges[Direction.DOWN] = self.edges[Direction.RIGHT]
-            self.edges[Direction.RIGHT] = temp
-        
-        self.rotation = (self.rotation + degrees) % 360
+        self._rotation = (self._rotation + degrees) % 360
+    
+    def get_edge(self, direction: Direction) -> int:
+        """获取指定方向的边缘值，考虑旋转"""
+        rotations = self._rotation // 90  # 将角度转换为90度的倍数
+        # 根据旋转次数调整方向
+        adjusted_direction = Direction((direction.value - rotations) % 4)
+        return self._edges[adjusted_direction]
+    
+    def set_position(self, row: int, col: int):
+        """设置拼图片在拼图中的位置"""
+        self.position = (row, col)
     
     def matches(self, other: 'JigsawPiece', direction: Direction) -> bool:
-        """检查当前拼图片是否能与另一个拼图片在指定方向匹配"""
-        return self.edges[direction] + other.edges[direction.opposite()] == 0
-    
-    def is_placed(self) -> bool:
-        """检查拼图片是否已放置在拼图中"""
-        return self.position[0] is not None and self.position[1] is not None
+        """检查两片是否在指定方向上匹配
+        
+        Args:
+            other: 要检查匹配的另一片拼图片
+            direction: 从当前片看向另一片的方向
+            
+        Returns:
+            bool: 如果两片在指定方向上匹配则返回True
+        """
+        if not other:
+            return False
+            
+        # 获取当前片在指定方向的边缘值
+        this_edge = self.get_edge(direction)
+        # 获取另一片在相反方向的边缘值
+        other_edge = other.get_edge(direction.opposite())
+        
+        # 如果两个边缘都是0，说明都是外边缘，不应该匹配
+        if this_edge == 0 and other_edge == 0:
+            return False
+            
+        # 边缘值之和应为0表示匹配
+        return this_edge + other_edge == 0
     
     def __str__(self) -> str:
-        return f"JigsawPiece(id={self.id}, pos={self.position}, rotation={self.rotation}°)" 
+        return f"JigsawPiece(id={self.id}, pos={self.position}, rotation={self._rotation}°)" 
