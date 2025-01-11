@@ -68,7 +68,8 @@ jobs:
     - name: Build documentation
       run: |
         cd docs
-        make html
+        chmod +x Makefile
+        make html SPHINXBUILD="python -m sphinx"
     
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3

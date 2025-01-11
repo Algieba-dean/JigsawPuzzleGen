@@ -103,12 +103,24 @@
 1. 修改 RST 文件
 2. 构建文档：
 
+在 Windows 上：
+
 .. code-block:: bash
 
     cd docs
-    make html
+    .\make.bat html
 
-3. 检查 build/html/index.html
+在 Linux/macOS 上：
+
+.. code-block:: bash
+
+    cd docs
+    make html SPHINXBUILD="python -m sphinx"
+
+3. 检查生成的文档：
+   - Windows: ``start build\html\index.html``
+   - Linux: ``xdg-open build/html/index.html``
+   - macOS: ``open build/html/index.html``
 
 发布流程
 --------
