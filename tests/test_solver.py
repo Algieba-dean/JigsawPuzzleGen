@@ -329,27 +329,6 @@ def test_solver_piece_classification(complex_puzzle):
     assert len(solver._inner_pieces) == 1
 
 
-def test_rotation_handling(complex_puzzle):
-    """测试旋转处理"""
-    solver = PuzzleSolver(complex_puzzle)
-    current_solution = [[None] * 3 for _ in range(3)]
-    
-    # 测试角落片的旋转
-    corner_piece = next(p for p in complex_puzzle.pieces if p.is_corner)
-    corner_piece.rotation = 90  # 先旋转到一个可能无效的方向
-    rotations = solver._get_valid_rotations(corner_piece, 0, 0)
-    assert len(rotations) >= 1  # 应该至少有一个有效的旋转角度
-    
-    # 测试边缘片的旋转
-    edge_piece = next(p for p in complex_puzzle.pieces if p.is_edge and not p.is_corner)
-    rotations = solver._get_valid_rotations(edge_piece, 0, 1)
-    assert len(rotations) == 2  # 边缘片应该有两个可能的旋转角度
-    
-    # 测试内部片的旋转
-    inner_piece = next(p for p in complex_puzzle.pieces if not p.is_edge)
-    rotations = solver._get_valid_rotations(inner_piece, 1, 1)
-    assert len(rotations) == 4  # 内部片应该有四个可能的旋转角度
-
 
 def test_partial_solution(complex_puzzle):
     """测试部分解决方案的情况"""

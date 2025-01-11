@@ -15,6 +15,21 @@ class JigsawPuzzle:
         ]
         self.pieces: List[JigsawPiece] = []
     
+    def __repr__(self) -> str:
+        """返回拼图的字符串表示"""
+        placed_pieces = sum(1 for row in self.board for piece in row if piece is not None)
+        total_pieces = len(self.pieces)
+        completion = f"{placed_pieces}/{total_pieces}"
+        
+        # 获取拼图片的详细信息
+        pieces_info = []
+        for piece in self.pieces:
+            position = piece.position if piece.position else "未放置"
+            pieces_info.append(f"ID={piece.id}(位置={position}, 旋转={piece.rotation}°)")
+        pieces_str = ", ".join(pieces_info)
+        
+        return f"JigsawPuzzle(rows={self.rows}, cols={self.cols}, 已放置={completion}, pieces=[{pieces_str}])"
+    
     def add_piece(self, piece: JigsawPiece) -> None:
         """添加拼图片到拼图中"""
         self.pieces.append(piece)

@@ -85,4 +85,5 @@ class JigsawPiece:
         return this_edge + other_edge == 0
     
     def __str__(self) -> str:
+        """返回拼图片的字符串表示"""
         return f"JigsawPiece(id={self.id}, pos={self.position}, rotation={self._rotation}°)" 

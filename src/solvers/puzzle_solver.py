@@ -153,7 +153,7 @@ class PuzzleSolver:
                 # 保存原始旋转角度
                 original_rotation = piece.rotation
                 # 尝试所有可能的旋转
-                rotations = self._get_valid_rotations(piece, row, col)
+                rotations = self._get_valid_rotations()
                 for rotation in rotations:
                     piece.rotation = rotation
                     if self._check_placement(piece, row, col, current_solution):
@@ -174,34 +174,8 @@ class PuzzleSolver:
             
         return False
     
-    def _get_valid_rotations(self, piece: JigsawPiece, row: int, col: int) -> List[int]:
-        """获取给定位置的有效旋转角度列表"""
-        # 如果是角落片
-        if piece.is_corner:
-            valid_rotations = []
-            original_rotation = piece.rotation
-            # 尝试所有可能的旋转
-            for rotation in [0, 90, 180, 270]:
-                piece.rotation = rotation
-                # 检查在此旋转下是否满足边缘条件
-                if self._check_placement(piece, row, col, [[None] * self.puzzle.cols for _ in range(self.puzzle.rows)]):
-                    valid_rotations.append(rotation)
-            piece.rotation = original_rotation
-            return valid_rotations if valid_rotations else [0]  # 如果没有找到有效旋转，返回默认值
-            
-        # 如果是边缘片（非角落）
-        elif piece.is_edge:
-            # 根据位置确定可能的旋转
-            if row == 0:  # 上边缘
-                return [0, 180]
-            elif row == self.puzzle.rows - 1:  # 下边缘
-                return [0, 180]
-            elif col == 0:  # 左边缘
-                return [90, 270]
-            else:  # 右边缘
-                return [90, 270]
-            
-        # 如果是内部片
+    def _get_valid_rotations(self) -> List[int]:
+        """获取有效旋转角度列表"""
         return [0, 90, 180, 270]
     
     def _collect_solution(self, current_solution: List[List[Optional[JigsawPiece]]]) -> List[Tuple[int, int, int, int]]:
