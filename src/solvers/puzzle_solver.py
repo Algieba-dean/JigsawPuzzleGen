@@ -44,13 +44,49 @@ class PuzzleSolver:
         if not self._check_edge_compatibility(piece, row, col, current_solution):
             return False
             
-        # 然后检查与相邻片的匹配情况
+        # 检查边缘片的外边缘是否为0
+        if row == 0 and piece.get_edge(Direction.UP) != 0:  # 上边缘
+            return False
+        if row == self.puzzle.rows - 1 and piece.get_edge(Direction.DOWN) != 0:  # 下边缘
+            return False
+        if col == 0 and piece.get_edge(Direction.LEFT) != 0:  # 左边缘
+            return False
+        if col == self.puzzle.cols - 1 and piece.get_edge(Direction.RIGHT) != 0:  # 右边缘
+            return False
+            
+        # 检查与相邻片的匹配情况
+        # 上方
         if row > 0 and current_solution[row-1][col]:
             if not piece.matches(current_solution[row-1][col], Direction.UP):
                 return False
+            # 双向检查
+            if not current_solution[row-1][col].matches(piece, Direction.DOWN):
+                return False
+                
+        # 左方
         if col > 0 and current_solution[row][col-1]:
             if not piece.matches(current_solution[row][col-1], Direction.LEFT):
                 return False
+            # 双向检查
+            if not current_solution[row][col-1].matches(piece, Direction.RIGHT):
+                return False
+                
+        # 下方
+        if row < self.puzzle.rows - 1 and current_solution[row+1][col]:
+            if not piece.matches(current_solution[row+1][col], Direction.DOWN):
+                return False
+            # 双向检查
+            if not current_solution[row+1][col].matches(piece, Direction.UP):
+                return False
+                
+        # 右方
+        if col < self.puzzle.cols - 1 and current_solution[row][col+1]:
+            if not piece.matches(current_solution[row][col+1], Direction.RIGHT):
+                return False
+            # 双向检查
+            if not current_solution[row][col+1].matches(piece, Direction.LEFT):
+                return False
+                
         return True
     
     def _try_rotations(self, piece: JigsawPiece, row: int, col: int,
@@ -125,29 +161,47 @@ class PuzzleSolver:
                         current_solution[row][col] = piece
                         if self._find_solutions_recursive(next_row, next_col, used_pieces,
                                                        current_solution, solutions):
+                            piece.rotation = original_rotation
                             return True
                         current_solution[row][col] = None
                         used_pieces.remove(piece.id)
                 # 恢复原始旋转角度
                 piece.rotation = original_rotation
+        
+        # 如果已经找到足够的解决方案，返回True
+        if hasattr(self, 'max_solutions') and len(solutions) >= self.max_solutions:
+            return True
+            
         return False
     
     def _get_valid_rotations(self, piece: JigsawPiece, row: int, col: int) -> List[int]:
         """获取给定位置的有效旋转角度列表"""
-        # 如果是边缘片，只需要尝试两个方向
-        if piece.is_edge and not piece.is_corner:
-            return [0, 180] if row in (0, self.puzzle.rows-1) else [90, 270]
-        # 如果是角片，只需要尝试一个方向
-        elif piece.is_corner:
-            if row == 0 and col == 0:
-                return [0]  # 左上角
-            elif row == 0 and col == self.puzzle.cols-1:
-                return [90]  # 右上角
-            elif row == self.puzzle.rows-1 and col == 0:
-                return [270]  # 左下角
-            else:  # 右下角
-                return [180]
-        # 如果是内部片，需要尝试所有方向
+        # 如果是角落片
+        if piece.is_corner:
+            valid_rotations = []
+            original_rotation = piece.rotation
+            # 尝试所有可能的旋转
+            for rotation in [0, 90, 180, 270]:
+                piece.rotation = rotation
+                # 检查在此旋转下是否满足边缘条件
+                if self._check_placement(piece, row, col, [[None] * self.puzzle.cols for _ in range(self.puzzle.rows)]):
+                    valid_rotations.append(rotation)
+            piece.rotation = original_rotation
+            return valid_rotations if valid_rotations else [0]  # 如果没有找到有效旋转，返回默认值
+            
+        # 如果是边缘片（非角落）
+        elif piece.is_edge:
+            # 根据位置确定可能的旋转
+            if row == 0:  # 上边缘
+                return [0, 180]
+            elif row == self.puzzle.rows - 1:  # 下边缘
+                return [0, 180]
+            elif col == 0:  # 左边缘
+                return [90, 270]
+            else:  # 右边缘
+                return [90, 270]
+            
+        # 如果是内部片
         return [0, 90, 180, 270]
     
     def _collect_solution(self, current_solution: List[List[Optional[JigsawPiece]]]) -> List[Tuple[int, int, int, int]]:

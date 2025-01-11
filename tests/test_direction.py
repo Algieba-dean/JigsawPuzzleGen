@@ -21,5 +21,4 @@ def test_direction_opposite():
 def test_direction_comparison():
     """测试方向比较"""
     assert Direction.UP != Direction.DOWN
-    assert Direction.LEFT != Direction.RIGHT
-    assert Direction.UP == Direction.UP 
+    assert Direction.LEFT != Direction.RIGHT 

@@ -81,10 +81,6 @@ class JigsawPiece:
         # 获取另一片在相反方向的边缘值
         other_edge = other.get_edge(direction.opposite())
         
-        # 如果两个边缘都是0，说明都是外边缘，不应该匹配
-        if this_edge == 0 and other_edge == 0:
-            return False
-            
         # 边缘值之和应为0表示匹配
         return this_edge + other_edge == 0
     

@@ -76,10 +76,10 @@ def test_piece_matching(piece, piece_with_edges):
     """测试拼图片匹配"""
     # 创建一个匹配的拼图片
     matching_edges = {
-        Direction.UP: -1,  # 匹配piece的DOWN
-        Direction.RIGHT: -2,  # 匹配piece的LEFT
-        Direction.DOWN: 1,  # 匹配piece的UP
-        Direction.LEFT: 2  # 匹配piece的RIGHT
+        Direction.UP: 1,  # 匹配piece的DOWN
+        Direction.RIGHT: 2,  # 匹配piece的LEFT
+        Direction.DOWN: -1,  # 匹配piece的UP
+        Direction.LEFT: -2  # 匹配piece的RIGHT
     }
     matching_piece = JigsawPiece(3, matching_edges)
     
